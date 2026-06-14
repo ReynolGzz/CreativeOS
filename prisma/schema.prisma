@@ -1,0 +1,368 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── NextAuth ──────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts           Account[]
+  sessions           Session[]
+  projects           Project[]
+  creditBalance      CreditBalance?
+  creditUsages       CreditUsage[]
+  competitorResearch CompetitorResearch[]
+  exports            Export[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ─── Core Business ────────────────────────────────────────────────────────
+
+enum Platform {
+  META
+  TIKTOK
+  INSTAGRAM
+  GOOGLE_DISPLAY
+}
+
+enum VisualStyle {
+  PREMIUM
+  UGC
+  MINIMAL
+  LUXURY
+  BOLD
+  FITNESS
+  SKINCARE
+  ECOMMERCE
+}
+
+enum ProjectStatus {
+  DRAFT
+  ANALYZING
+  STRATEGY_READY
+  GENERATING
+  COMPLETED
+  FAILED
+}
+
+model Project {
+  id                 String        @id @default(cuid())
+  userId             String
+  name               String
+  productDescription String?       @db.Text
+  targetAudience     String?
+  platform           Platform      @default(META)
+  visualStyle        VisualStyle   @default(PREMIUM)
+  productUrl         String?
+  competitors        String[]
+  status             ProjectStatus @default(DRAFT)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productImages   ProductImage[]
+  productAnalysis ProductAnalysis?
+  adStrategy      AdStrategy?
+  adCreatives     AdCreative[]
+  creditUsages    CreditUsage[]
+  exports         Export[]
+
+  @@map("projects")
+}
+
+model ProductImage {
+  id             String   @id @default(cuid())
+  projectId      String
+  userId         String
+  url            String
+  uploadthingKey String?
+  width          Int?
+  height         Int?
+  createdAt      DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("product_images")
+}
+
+model ProductAnalysis {
+  id                       String   @id @default(cuid())
+  projectId                String   @unique
+  productType              String
+  colors                   String[]
+  materials                String[]
+  category                 String
+  benefits                 String[]
+  probableAudience         String
+  recommendedStyle         String
+  salesAngles              String[]
+  customerObjections       String[]
+  positioningOpportunities String[]
+  rawJson                  Json
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("product_analyses")
+}
+
+model AdStrategy {
+  id           String   @id @default(cuid())
+  projectId    String   @unique
+  angles       Json
+  hooks        Json
+  headlines    Json
+  primaryTexts Json
+  ctas         Json
+  imagePrompts Json
+  formats      Json
+  reasoning    Json
+  rawJson      Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  adCreatives AdCreative[]
+
+  @@map("ad_strategies")
+}
+
+enum AdType {
+  PROBLEM_SOLUTION
+  LUXURY_PREMIUM
+  SOCIAL_PROOF
+  OFFER_DISCOUNT
+  BEFORE_AFTER
+  UGC_STYLE
+  MINIMAL_PRODUCT
+  LIFESTYLE
+  COMPARISON
+  URGENCY_FOMO
+}
+
+enum AdStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum AdFormat {
+  SQUARE_1080
+  STORY_1080x1920
+  LANDSCAPE_1200x628
+}
+
+model AdCreative {
+  id           String   @id @default(cuid())
+  projectId    String
+  strategyId   String
+  index        Int
+  adType       AdType
+  angle        String
+  hook         String   @db.Text
+  headline     String
+  primaryText  String   @db.Text
+  cta          String
+  imagePrompt  String   @db.Text
+  format       AdFormat @default(SQUARE_1080)
+  platform     String
+  status       AdStatus @default(QUEUED)
+  errorMessage String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  strategy       AdStrategy      @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  generatedImage GeneratedImage?
+  exports        Export[]        @relation("AdCreativeExports")
+
+  @@map("ad_creatives")
+}
+
+model GeneratedImage {
+  id             String   @id @default(cuid())
+  adCreativeId   String   @unique
+  url            String
+  uploadthingKey String?
+  width          Int
+  height         Int
+  format         AdFormat
+  createdAt      DateTime @default(now())
+
+  adCreative AdCreative @relation(fields: [adCreativeId], references: [id], onDelete: Cascade)
+
+  @@map("generated_images")
+}
+
+// ─── Credits ──────────────────────────────────────────────────────────────
+
+enum CreditOperation {
+  ANALYZE_PRODUCT
+  GENERATE_STRATEGY
+  GENERATE_IMAGE
+  GENERATE_FULL_PACK
+  ANALYZE_COMPETITOR
+  PURCHASE
+  BONUS
+}
+
+model CreditBalance {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  balance      Int      @default(0)
+  lifetimeUsed Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("credit_balances")
+}
+
+model CreditUsage {
+  id          String          @id @default(cuid())
+  userId      String
+  projectId   String?
+  operation   CreditOperation
+  creditsUsed Int
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@map("credit_usages")
+}
+
+// ─── Intelligence ─────────────────────────────────────────────────────────
+
+enum ResearchStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model CompetitorResearch {
+  id             String         @id @default(cuid())
+  userId         String
+  competitorName String
+  competitorUrl  String?
+  category       String?
+  screenshots    String[]
+  status         ResearchStatus @default(PENDING)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  user    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  insight CompetitorAdInsight?
+
+  @@map("competitor_research")
+}
+
+model CompetitorAdInsight {
+  id                       String   @id @default(cuid())
+  researchId               String   @unique
+  hooks                    String[]
+  offers                   String[]
+  ctas                     String[]
+  structure                String   @db.Text
+  colors                   String[]
+  visualStyle              String
+  emotions                 String[]
+  audienceType             String
+  repeatedPatterns         String[]
+  salesAngles              String[]
+  frequentClaims           String[]
+  unexploitedOpportunities String[]
+  summary                  String   @db.Text
+  winningPatterns          String[]
+  actionableInsights       String[]
+  creativeOpportunities    String[]
+  generatedAdIdeas         Json
+  rawJson                  Json
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  research CompetitorResearch @relation(fields: [researchId], references: [id], onDelete: Cascade)
+
+  @@map("competitor_ad_insights")
+}
+
+// ─── Exports ──────────────────────────────────────────────────────────────
+
+enum ExportType {
+  SINGLE_PNG
+  ZIP_ALL
+}
+
+model Export {
+  id            String     @id @default(cuid())
+  userId        String
+  projectId     String?
+  type          ExportType
+  adCreativeIds String[]
+  url           String?
+  createdAt     DateTime   @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project     Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  adCreatives AdCreative[] @relation("AdCreativeExports")
+
+  @@map("exports")
+}
