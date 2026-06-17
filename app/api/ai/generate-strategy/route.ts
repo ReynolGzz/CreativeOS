@@ -27,10 +27,13 @@ export async function POST(req: NextRequest) {
 
     const { projectId } = parsed.data;
 
-    const project = await prisma.project.findFirst({
-      where: { id: projectId, userId: session.user.id },
-      include: { productAnalysis: true },
-    });
+    const [project, brandKit] = await Promise.all([
+      prisma.project.findFirst({
+        where: { id: projectId, userId: session.user.id },
+        include: { productAnalysis: true },
+      }),
+      prisma.brandKit.findUnique({ where: { userId: session.user.id } }),
+    ]);
 
     if (!project || !project.productAnalysis) {
       return NextResponse.json({ error: "Project or analysis not found" }, { status: 404 });
@@ -58,7 +61,19 @@ export async function POST(req: NextRequest) {
       project.name,
       project.platform,
       project.visualStyle,
-      project.targetAudience ?? undefined
+      project.targetAudience ?? undefined,
+      brandKit
+        ? {
+            brandName: brandKit.brandName,
+            toneOfVoice: brandKit.toneOfVoice,
+            tagline: brandKit.tagline,
+            brandValues: brandKit.brandValues,
+            allowedClaims: brandKit.allowedClaims,
+            prohibitedClaims: brandKit.prohibitedClaims,
+            primaryColor: brandKit.primaryColor,
+            secondaryColor: brandKit.secondaryColor,
+          }
+        : null
     );
 
     const response = await openai.chat.completions.create({
@@ -71,6 +86,7 @@ export async function POST(req: NextRequest) {
     const raw = response.choices[0].message.content ?? "{}";
     const strategyData = adStrategyResponseSchema.parse(JSON.parse(raw));
 
+    // Save strategy
     const strategy = await prisma.adStrategy.upsert({
       where: { projectId },
       update: {
@@ -98,6 +114,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Delete existing ad creatives and recreate
     await prisma.adCreative.deleteMany({ where: { projectId } });
 
     const adCreatives = await prisma.$transaction(
@@ -117,6 +134,7 @@ export async function POST(req: NextRequest) {
             format: (ad.format as AdFormat) || "SQUARE_1080",
             platform: ad.platform || project.platform,
             status: "QUEUED",
+            platformCopy: ad.platformVariants ?? null,
           },
         })
       )

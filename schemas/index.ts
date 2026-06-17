@@ -90,6 +90,38 @@ export const adStrategyItemSchema = z.object({
   format: z.string(),
   platform: z.string(),
   reasoning: z.string(),
+  platformVariants: z
+    .object({
+      META: z
+        .object({
+          headline: z.string(),
+          primaryText: z.string(),
+          description: z.string(),
+          cta: z.string(),
+        })
+        .optional(),
+      TIKTOK: z
+        .object({
+          hook: z.string(),
+          caption: z.string(),
+          hashtags: z.array(z.string()),
+        })
+        .optional(),
+      INSTAGRAM: z
+        .object({
+          caption: z.string(),
+          storyText: z.string(),
+        })
+        .optional(),
+      GOOGLE_DISPLAY: z
+        .object({
+          headline: z.string(),
+          description: z.string(),
+          longHeadline: z.string(),
+        })
+        .optional(),
+    })
+    .optional(),
 });
 
 export const adStrategyResponseSchema = z.object({

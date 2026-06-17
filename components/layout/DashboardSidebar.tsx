@@ -10,6 +10,7 @@ import {
   Settings,
   CreditCard,
   Zap,
+  Palette,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +18,7 @@ const nav = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/dashboard/projects", label: "Projects", icon: FolderOpen },
   { href: "/dashboard/intelligence", label: "Ad Intelligence", icon: Search },
+  { href: "/dashboard/brand-kit", label: "Brand Kit", icon: Palette },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
   { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
 ];
@@ -26,6 +28,7 @@ export default function DashboardSidebar({ user }: { user: { name?: string | nul
 
   return (
     <aside className="w-60 min-h-screen bg-zinc-900 border-r border-zinc-800 flex flex-col">
+      {/* Logo */}
       <div className="px-4 py-5 border-b border-zinc-800">
         <Link href="/dashboard" className="flex items-center gap-2">
           <div className="w-7 h-7 bg-violet-600 rounded-lg flex items-center justify-center">
@@ -35,6 +38,7 @@ export default function DashboardSidebar({ user }: { user: { name?: string | nul
         </Link>
       </div>
 
+      {/* New Project CTA */}
       <div className="px-3 pt-4 pb-2">
         <Link
           href="/dashboard/projects/new"
@@ -45,6 +49,7 @@ export default function DashboardSidebar({ user }: { user: { name?: string | nul
         </Link>
       </div>
 
+      {/* Navigation */}
       <nav className="flex-1 px-3 pt-2 space-y-0.5">
         {nav.map((item) => {
           const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
@@ -66,6 +71,7 @@ export default function DashboardSidebar({ user }: { user: { name?: string | nul
         })}
       </nav>
 
+      {/* User */}
       <div className="px-3 py-4 border-t border-zinc-800">
         <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer">
           <div className="w-7 h-7 rounded-full bg-violet-600 flex items-center justify-center text-white text-xs font-bold shrink-0">

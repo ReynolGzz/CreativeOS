@@ -26,6 +26,7 @@ model User {
   creditUsages       CreditUsage[]
   competitorResearch CompetitorResearch[]
   exports            Export[]
+  brandKit           BrandKit?
 
   @@map("users")
 }
@@ -99,6 +100,17 @@ enum ProjectStatus {
   FAILED
 }
 
+enum ToneOfVoice {
+  PROFESSIONAL
+  CASUAL
+  PLAYFUL
+  BOLD
+  LUXURIOUS
+  TECHNICAL
+  INSPIRATIONAL
+  FRIENDLY
+}
+
 model Project {
   id                 String        @id @default(cuid())
   userId             String
@@ -113,13 +125,13 @@ model Project {
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  productImages   ProductImage[]
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productImages  ProductImage[]
   productAnalysis ProductAnalysis?
-  adStrategy      AdStrategy?
-  adCreatives     AdCreative[]
-  creditUsages    CreditUsage[]
-  exports         Export[]
+  adStrategy     AdStrategy?
+  adCreatives    AdCreative[]
+  creditUsages   CreditUsage[]
+  exports        Export[]
 
   @@map("projects")
 }
@@ -162,19 +174,19 @@ model ProductAnalysis {
 }
 
 model AdStrategy {
-  id           String   @id @default(cuid())
-  projectId    String   @unique
-  angles       Json
-  hooks        Json
-  headlines    Json
+  id          String   @id @default(cuid())
+  projectId   String   @unique
+  angles      Json
+  hooks       Json
+  headlines   Json
   primaryTexts Json
-  ctas         Json
+  ctas        Json
   imagePrompts Json
-  formats      Json
-  reasoning    Json
-  rawJson      Json
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  formats     Json
+  reasoning   Json
+  rawJson     Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   adCreatives AdCreative[]
@@ -209,28 +221,29 @@ enum AdFormat {
 }
 
 model AdCreative {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   projectId    String
   strategyId   String
   index        Int
   adType       AdType
   angle        String
-  hook         String   @db.Text
+  hook         String    @db.Text
   headline     String
-  primaryText  String   @db.Text
+  primaryText  String    @db.Text
   cta          String
-  imagePrompt  String   @db.Text
-  format       AdFormat @default(SQUARE_1080)
+  imagePrompt  String    @db.Text
+  format       AdFormat  @default(SQUARE_1080)
   platform     String
-  status       AdStatus @default(QUEUED)
-  errorMessage String?  @db.Text
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  status       AdStatus  @default(QUEUED)
+  errorMessage String?   @db.Text
+  platformCopy Json?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  strategy       AdStrategy      @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  strategy       AdStrategy     @relation(fields: [strategyId], references: [id], onDelete: Cascade)
   generatedImage GeneratedImage?
-  exports        Export[]        @relation("AdCreativeExports")
+  exports        Export[]       @relation("AdCreativeExports")
 
   @@map("ad_creatives")
 }
@@ -250,6 +263,32 @@ model GeneratedImage {
   @@map("generated_images")
 }
 
+// ─── Brand Kit ────────────────────────────────────────────────────────────
+
+model BrandKit {
+  id                 String      @id @default(cuid())
+  userId             String      @unique
+  brandName          String?
+  logoUrl            String?
+  logoUploadthingKey String?
+  primaryColor       String?
+  secondaryColor     String?
+  accentColor        String?
+  primaryFont        String?
+  toneOfVoice        ToneOfVoice @default(PROFESSIONAL)
+  brandValues        String[]
+  allowedClaims      String[]
+  prohibitedClaims   String[]
+  tagline            String?
+  targetAudience     String?     @db.Text
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("brand_kits")
+}
+
 // ─── Credits ──────────────────────────────────────────────────────────────
 
 enum CreditOperation {
@@ -263,11 +302,11 @@ enum CreditOperation {
 }
 
 model CreditBalance {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  balance      Int      @default(0)
-  lifetimeUsed Int      @default(0)
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  balance       Int      @default(0)
+  lifetimeUsed  Int      @default(0)
+  updatedAt     DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -309,7 +348,7 @@ model CompetitorResearch {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  user    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   insight CompetitorAdInsight?
 
   @@map("competitor_research")
@@ -352,13 +391,13 @@ enum ExportType {
 }
 
 model Export {
-  id            String     @id @default(cuid())
-  userId        String
-  projectId     String?
-  type          ExportType
-  adCreativeIds String[]
-  url           String?
-  createdAt     DateTime   @default(now())
+  id             String     @id @default(cuid())
+  userId         String
+  projectId      String?
+  type           ExportType
+  adCreativeIds  String[]
+  url            String?
+  createdAt      DateTime   @default(now())
 
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   project     Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
