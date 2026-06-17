@@ -243,6 +243,7 @@ model AdCreative {
   project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   strategy       AdStrategy     @relation(fields: [strategyId], references: [id], onDelete: Cascade)
   generatedImage GeneratedImage?
+  adScore        AdScore?
   exports        Export[]       @relation("AdCreativeExports")
 
   @@map("ad_creatives")
@@ -261,6 +262,25 @@ model GeneratedImage {
   adCreative AdCreative @relation(fields: [adCreativeId], references: [id], onDelete: Cascade)
 
   @@map("generated_images")
+}
+
+model AdScore {
+  id           String   @id @default(cuid())
+  adCreativeId String   @unique
+  hookStrength Int
+  clarity      Int
+  scrollStop   Int
+  ctaStrength  Int
+  overallScore Int
+  policyRisk   String
+  summary      String   @db.Text
+  suggestions  String[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  adCreative AdCreative @relation(fields: [adCreativeId], references: [id], onDelete: Cascade)
+
+  @@map("ad_scores")
 }
 
 // ─── Brand Kit ────────────────────────────────────────────────────────────

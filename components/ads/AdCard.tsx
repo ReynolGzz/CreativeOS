@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Download, RefreshCw, Copy, Check, Loader2 } from "lucide-react";
 import { AD_TYPE_LABELS } from "@/lib/utils";
 import type { AdCreative, GeneratedImage } from "@prisma/client";
+import AdScoreBadge from "@/components/ads/AdScoreBadge";
 
 type PlatformVariants = {
   META?: { headline: string; primaryText: string; description: string; cta: string };
@@ -14,8 +15,19 @@ type PlatformVariants = {
 
 type ActivePlatform = "DEFAULT" | "META" | "TIKTOK" | "INSTAGRAM" | "GOOGLE_DISPLAY";
 
+type AdScore = {
+  hookStrength: number;
+  clarity: number;
+  scrollStop: number;
+  ctaStrength: number;
+  overallScore: number;
+  policyRisk: string;
+  summary: string;
+  suggestions: string[];
+};
+
 type Props = {
-  ad: AdCreative & { generatedImage: GeneratedImage | null };
+  ad: AdCreative & { generatedImage: GeneratedImage | null; adScore: AdScore | null };
   projectId: string;
 };
 
@@ -234,6 +246,7 @@ export default function AdCard({ ad, projectId }: Props) {
         >
           {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
         </button>
+        <AdScoreBadge adCreativeId={ad.id} initialScore={ad.adScore} />
         <button
           onClick={handleRegenerate}
           disabled={regenerating}
